@@ -1,0 +1,220 @@
+PARSER_BEGIN(LenguajesAutomatas)
+
+package clases;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.util.Enumeration;
+import java.util.Hashtable;
+
+public class LenguajesAutomatas {
+
+    public static Hashtable<Token, Hashtable> ST = new Hashtable();
+
+    public static void main(String args []) throws ParseException {
+        try {
+            File file = new File("src/clases/prueba.txt");
+            FileInputStream fis = new FileInputStream(file);
+            LenguajesAutomatas analizador = new LenguajesAutomatas(fis);
+            analizador.compile();
+            System.out.println("");
+            System.out.printf("%s\t%s\n------------------------------------------------------------------\n", "TYPE", "IDENTIFIER VALUE");
+            Enumeration e = ST.keys();
+            Object clave;
+            Object valor;
+            while (e.hasMoreElements()) {
+                clave = e.nextElement();
+                valor = ST.get(clave);
+                System.out.printf("%s\t%s\n", clave, valor);
+            }
+        } catch (ParseException e) {
+                System.err.println("Se encontraron errores en el analisis\n" + e.getMessage());
+        } catch (FileNotFoundException e) {
+                System.err.println(e.getMessage());
+        }
+    }
+}
+
+PARSER_END(LenguajesAutomatas)
+
+SKIP : /* WHITE SPACE */
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| "\f"
+}
+
+TOKEN : /* RESERVED WORDS */
+{
+
+    <CLASS: "class"> { System.out.println("RESERVED_WORD -> " + image ); }
+|   <IF: "if"> { System.out.println("RESERVED_WORD -> " + image ); }
+
+}
+
+TOKEN : /* TYPES */
+{
+    <TYPE: ("boolean" | "int") > { System.out.println("TYPE -> " + image ); }
+}
+
+TOKEN : /* MODIFIER */
+{
+    <MODIFIER: ("public" | "private") > { System.out.println("MODIFIER -> " + image ); }
+}
+
+TOKEN : /* LITERALS */
+{
+    <INTEGER_LITERAL: (["0"-"9"])+ > { System.out.println("INTEGER_LITERAL -> " + image ); }
+    |<BOOLEAN_LITERAL: ("true" | "false")>
+}
+
+TOKEN : /* IDENTIFIER */
+{
+    <IDENTIFIER: ["a"-"z","_"](["a"-"z"])*> { System.out.println("IDENTIFIER -> " + image ); }
+}
+
+/* DECLARATION SYNTAX */
+
+void classDeclaration() :
+{}
+{
+
+    [modifier()] "class" <IDENTIFIER> "{" ( fieldDeclaration() )* ( ifStatement() )* "}"
+
+}
+
+void fieldDeclaration() :
+{}
+{
+
+    variableDeclaration() ";"
+
+}
+
+void variableDeclaration() :
+{
+    Token t;
+    Hashtable h;
+}
+{
+
+    [modifier()] ( t = type()) (h = variableDeclarator())
+    { ST.put(t, h); }
+
+}
+
+Hashtable variableDeclarator() :
+{
+    Token id, literal;
+    Hashtable<Token, Token> h = new Hashtable();
+}
+{
+
+    id = <IDENTIFIER> "=" literal = literal()
+    { h.put(id, literal); return h;  }
+
+}
+
+/* STATEMENTS */
+
+void ifStatement() :
+{}
+{
+
+    "if" "(" expression() ")" statement()
+
+}
+
+void statement() :
+{}
+{
+
+    "{" aritmeticaExpression() "}"
+
+}
+
+/* EXPRESSION */
+
+void expression() :
+{}
+{
+
+    testingExpression()
+
+}
+
+void testingExpression() :
+{}
+{
+
+    comparator() (">" | "<" | ">=" | "<=" | "==" | "!=") comparator()
+
+}
+
+void aritmeticaExpression() :
+{}
+{
+
+    <IDENTIFIER> "=" integerLiteral() ("+" | "-") integerLiteral() ";"
+
+}
+
+void comparator() :
+{}
+{
+
+    <INTEGER_LITERAL>
+|
+    <IDENTIFIER>
+
+}
+
+Token literal() :
+{
+    Token t;
+}
+{
+
+    (t = <INTEGER_LITERAL>
+|
+    t = <BOOLEAN_LITERAL>)
+
+    {return t;}
+
+}
+
+void integerLiteral() :
+{}
+{
+
+    <INTEGER_LITERAL>
+
+}
+
+void modifier() :
+{}
+{
+
+    <MODIFIER>
+
+}
+
+Token type() :
+{
+    Token t;
+}
+{
+
+    t = <TYPE> { return t; }
+}
+
+void compile() :
+{}
+{
+
+    classDeclaration()
+
+}
